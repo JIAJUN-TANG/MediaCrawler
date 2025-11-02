@@ -219,8 +219,6 @@ class BilibiliCrawler(AbstractCrawler):
                 
                 # Sleep after page navigation
                 await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-                utils.logger.info(f"[BilibiliCrawler.search_by_keywords] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after page {page-1}")
-                
                 await self.batch_get_video_comments(video_id_list)
 
     async def search_by_keywords_in_time_range(self, daily_limit: bool):
@@ -315,7 +313,6 @@ class BilibiliCrawler(AbstractCrawler):
         :return:
         """
         if not config.ENABLE_GET_COMMENTS:
-            utils.logger.info(f"[BilibiliCrawler.batch_get_note_comments] Crawling comment mode is not enabled")
             return
 
         utils.logger.info(f"[BilibiliCrawler.batch_get_video_comments] video ids:{video_id_list}")
@@ -337,7 +334,6 @@ class BilibiliCrawler(AbstractCrawler):
             try:
                 utils.logger.info(f"[BilibiliCrawler.get_comments] begin get video_id: {video_id} comments ...")
                 await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-                utils.logger.info(f"[BilibiliCrawler.get_comments] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after fetching comments for video {video_id}")
                 await self.bili_client.get_video_all_comments(
                     video_id=video_id,
                     crawl_interval=config.CRAWLER_MAX_SLEEP_SEC,
@@ -367,7 +363,6 @@ class BilibiliCrawler(AbstractCrawler):
             if int(result["page"]["count"]) <= pn * ps:
                 break
             await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-            utils.logger.info(f"[BilibiliCrawler.get_creator_videos] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after page {pn}")
             pn += 1
 
     async def get_specified_videos(self, video_url_list: List[str]):
@@ -376,13 +371,11 @@ class BilibiliCrawler(AbstractCrawler):
         :param video_url_list: List of video URLs or BV IDs
         :return:
         """
-        utils.logger.info("[BilibiliCrawler.get_specified_videos] Parsing video URLs...")
         bvids_list = []
         for video_url in video_url_list:
             try:
                 video_info = parse_video_info_from_url(video_url)
                 bvids_list.append(video_info.video_id)
-                utils.logger.info(f"[BilibiliCrawler.get_specified_videos] Parsed video ID: {video_info.video_id} from {video_url}")
             except ValueError as e:
                 utils.logger.error(f"[BilibiliCrawler.get_specified_videos] Failed to parse video URL: {e}")
                 continue
@@ -416,7 +409,6 @@ class BilibiliCrawler(AbstractCrawler):
                 
                 # Sleep after fetching video details
                 await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-                utils.logger.info(f"[BilibiliCrawler.get_video_info_task] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after fetching video details {bvid or aid}")
                 
                 return result
             except DataFetchError as ex:
@@ -451,7 +443,6 @@ class BilibiliCrawler(AbstractCrawler):
         :param httpx_proxy: httpx proxy
         :return: bilibili client
         """
-        utils.logger.info("[BilibiliCrawler.create_bilibili_client] Begin create bilibili API client ...")
         cookie_str, cookie_dict = utils.convert_cookies(await self.browser_context.cookies())
         bilibili_client_obj = BilibiliClient(
             proxy=httpx_proxy,
@@ -482,7 +473,6 @@ class BilibiliCrawler(AbstractCrawler):
         :param headless: headless mode
         :return: browser context
         """
-        utils.logger.info("[BilibiliCrawler.launch_browser] Begin create browser context ...")
         if config.SAVE_LOGIN_STATE:
             # feat issue #14
             # we will save login state to avoid login every time
@@ -559,7 +549,6 @@ class BilibiliCrawler(AbstractCrawler):
         :return:
         """
         if not config.ENABLE_GET_MEIDAS:
-            utils.logger.info(f"[BilibiliCrawler.get_bilibili_video] Crawling image mode is not enabled")
             return
         video_item_view: Dict = video_item.get("View")
         aid = video_item_view.get("aid")
@@ -582,7 +571,6 @@ class BilibiliCrawler(AbstractCrawler):
 
         content = await self.bili_client.get_video_media(video_url)
         await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-        utils.logger.info(f"[BilibiliCrawler.get_bilibili_video] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after fetching video {aid}")
         if content is None:
             return
         extension_file_name = f"video.mp4"
@@ -592,20 +580,16 @@ class BilibiliCrawler(AbstractCrawler):
         """
         creator_url_list: get details for creator from creator URL list
         """
-        utils.logger.info(f"[BilibiliCrawler.get_all_creator_details] Crawling the details of creators")
-        utils.logger.info(f"[BilibiliCrawler.get_all_creator_details] Parsing creator URLs...")
 
         creator_id_list = []
         for creator_url in creator_url_list:
             try:
                 creator_info = parse_creator_info_from_url(creator_url)
                 creator_id_list.append(int(creator_info.creator_id))
-                utils.logger.info(f"[BilibiliCrawler.get_all_creator_details] Parsed creator ID: {creator_info.creator_id} from {creator_url}")
             except ValueError as e:
                 utils.logger.error(f"[BilibiliCrawler.get_all_creator_details] Failed to parse creator URL: {e}")
                 continue
 
-        utils.logger.info(f"[BilibiliCrawler.get_all_creator_details] creator ids:{creator_id_list}")
 
         semaphore = asyncio.Semaphore(config.MAX_CONCURRENCY_NUM)
         task_list: List[Task] = []
@@ -647,7 +631,6 @@ class BilibiliCrawler(AbstractCrawler):
         creator_id = creator_info["id"]
         async with semaphore:
             try:
-                utils.logger.info(f"[BilibiliCrawler.get_fans] begin get creator_id: {creator_id} fans ...")
                 await self.bili_client.get_creator_all_fans(
                     creator_info=creator_info,
                     crawl_interval=config.CRAWLER_MAX_SLEEP_SEC,
@@ -670,7 +653,6 @@ class BilibiliCrawler(AbstractCrawler):
         creator_id = creator_info["id"]
         async with semaphore:
             try:
-                utils.logger.info(f"[BilibiliCrawler.get_followings] begin get creator_id: {creator_id} followings ...")
                 await self.bili_client.get_creator_all_followings(
                     creator_info=creator_info,
                     crawl_interval=config.CRAWLER_MAX_SLEEP_SEC,
@@ -693,7 +675,6 @@ class BilibiliCrawler(AbstractCrawler):
         creator_id = creator_info["id"]
         async with semaphore:
             try:
-                utils.logger.info(f"[BilibiliCrawler.get_dynamics] begin get creator_id: {creator_id} dynamics ...")
                 await self.bili_client.get_creator_all_dynamics(
                     creator_info=creator_info,
                     crawl_interval=config.CRAWLER_MAX_SLEEP_SEC,

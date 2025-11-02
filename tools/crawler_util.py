@@ -15,16 +15,13 @@
 # @Desc    : 爬虫相关的工具函数
 
 import base64
-import json
 import random
 import re
 import urllib
 import urllib.parse
-from io import BytesIO
 from typing import Dict, List, Optional, Tuple, cast
 
 import httpx
-from PIL import Image, ImageDraw, ImageShow
 from playwright.async_api import Cookie, Page
 
 from . import utils
@@ -73,23 +70,6 @@ async def find_qrcode_img_from_canvas(page: Page, canvas_selector: str) -> str:
     # 将截图转换为base64格式
     base64_image = base64.b64encode(screenshot).decode('utf-8')
     return base64_image
-
-
-def show_qrcode(qr_code) -> None:  # type: ignore
-    """parse base64 encode qrcode image and show it"""
-    if "," in qr_code:
-        qr_code = qr_code.split(",")[1]
-    qr_code = base64.b64decode(qr_code)
-    image = Image.open(BytesIO(qr_code))
-
-    # Add a square border around the QR code and display it within the border to improve scanning accuracy.
-    width, height = image.size
-    new_image = Image.new('RGB', (width + 20, height + 20), color=(255, 255, 255))
-    new_image.paste(image, (10, 10))
-    draw = ImageDraw.Draw(new_image)
-    draw.rectangle((0, 0, width + 19, height + 19), outline=(0, 0, 0), width=1)
-    del ImageShow.UnixViewer.options["save_all"]
-    new_image.show()
 
 
 def get_user_agent() -> str:

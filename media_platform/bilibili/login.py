@@ -88,9 +88,6 @@ class BilibiliLogin(AbstractLogin):
             utils.logger.info("[BilibiliLogin.login_by_qrcode] login failed , have not found qrcode please check ....")
             sys.exit()
 
-        # show login qrcode
-        partial_show_qrcode = functools.partial(utils.show_qrcode, base64_qrcode_img)
-        asyncio.get_running_loop().run_in_executor(executor=None, func=partial_show_qrcode)
 
         utils.logger.info(f"[BilibiliLogin.login_by_qrcode] Waiting for scan code login, remaining time is 20s")
         try:

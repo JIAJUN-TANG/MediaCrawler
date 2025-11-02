@@ -21,6 +21,8 @@ from var import source_keyword_var
 from ._store_impl import *
 from .bilibilli_store_media import *
 
+import datetime
+
 
 class BiliStoreFactory:
     STORES = {
@@ -64,6 +66,7 @@ async def update_bilibili_video(video_item: Dict):
         "video_url": f"https://www.bilibili.com/video/av{video_id}",
         "video_cover_url": video_item_view.get("pic", ""),
         "source_keyword": source_keyword_var.get(),
+        "crawled_at": int(datetime.datetime.now().timestamp()),
     }
     utils.logger.info(f"[store.bilibili.update_bilibili_video] bilibili video id:{video_id}, title:{save_content_item.get('title')}")
     await BiliStoreFactory.create_store().store_content(content_item=save_content_item)
@@ -83,6 +86,7 @@ async def update_up_info(video_item: Dict):
         "total_liked": video_item_card_list.get("like_num"),
         "user_rank": video_item_card.get("level_info").get("current_level"),
         "is_official": video_item_card.get("official_verify").get("type"),
+        "crawled_at": int(datetime.datetime.now().timestamp()),
     }
     utils.logger.info(f"[store.bilibili.update_up_info] bilibili user_id:{video_item_card.get('mid')}")
     await BiliStoreFactory.create_store().store_creator(creator=saver_up_info)
@@ -115,6 +119,7 @@ async def update_bilibili_video_comment(video_id: str, comment_item: Dict):
         "sub_comment_count": str(comment_item.get("rcount", 0)),
         "like_count": like_count,
         "last_modify_ts": utils.get_current_timestamp(),
+        "crawled_at": int(datetime.datetime.now().timestamp()),
     }
     utils.logger.info(f"[store.bilibili.update_bilibili_video_comment] Bilibili video comment: {comment_id}, content: {save_comment_item.get('content')}")
     await BiliStoreFactory.create_store().store_comment(comment_item=save_comment_item)
@@ -183,6 +188,7 @@ async def batch_update_bilibili_creator_dynamics(creator_info: Dict, dynamics_li
             "total_comments": dynamic_comment,
             "total_forwards": dynamic_forward,
             "total_liked": dynamic_like,
+            "crawled_at": int(datetime.datetime.now().timestamp()),
         }
         await update_bilibili_creator_dynamic(creator_info=creator_info, dynamic_info=dynamic_info)
 
@@ -198,6 +204,7 @@ async def update_bilibili_creator_contact(creator_info: Dict, fan_info: Dict):
         "up_avatar": creator_info["avatar"],
         "fan_avatar": fan_info["avatar"],
         "last_modify_ts": utils.get_current_timestamp(),
+        "crawled_at": int(datetime.datetime.now().timestamp()),
     }
 
     await BiliStoreFactory.create_store().store_contact(contact_item=save_contact_item)
@@ -215,6 +222,7 @@ async def update_bilibili_creator_dynamic(creator_info: Dict, dynamic_info: Dict
         "total_forwards": dynamic_info["total_forwards"],
         "total_liked": dynamic_info["total_liked"],
         "last_modify_ts": utils.get_current_timestamp(),
+        "crawled_at": int(datetime.datetime.now().timestamp()),
     }
 
     await BiliStoreFactory.create_store().store_dynamic(dynamic_item=save_dynamic_item)

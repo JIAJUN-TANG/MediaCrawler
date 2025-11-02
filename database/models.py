@@ -1,6 +1,9 @@
+### 增加了 crawled_at 字段，用于记录数据爬取时间戳
+
 from sqlalchemy import create_engine, Column, Integer, Text, String, BigInteger
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import datetime  # 导入datetime模块用于获取当前时间戳
 
 Base = declarative_base()
 
@@ -15,6 +18,7 @@ class BilibiliVideo(Base):
     liked_count = Column(Integer)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     video_type = Column(Text)
     title = Column(Text)
     desc = Column(Text)
@@ -39,6 +43,7 @@ class BilibiliVideoComment(Base):
     avatar = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     comment_id = Column(BigInteger, index=True)
     video_id = Column(BigInteger, index=True)
     content = Column(Text)
@@ -57,6 +62,7 @@ class BilibiliUpInfo(Base):
     avatar = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     total_fans = Column(Integer)
     total_liked = Column(Integer)
     user_rank = Column(Integer)
@@ -75,6 +81,7 @@ class BilibiliContactInfo(Base):
     fan_avatar = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
 
 class BilibiliUpDynamic(Base):
     __tablename__ = 'bilibili_up_dynamic'
@@ -90,6 +97,7 @@ class BilibiliUpDynamic(Base):
     total_liked = Column(Integer)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
 
 class DouyinAweme(Base):
     __tablename__ = 'douyin_aweme'
@@ -104,6 +112,7 @@ class DouyinAweme(Base):
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     aweme_id = Column(BigInteger, index=True)
     aweme_type = Column(Text)
     title = Column(Text)
@@ -133,6 +142,7 @@ class DouyinAwemeComment(Base):
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     comment_id = Column(BigInteger, index=True)
     aweme_id = Column(BigInteger, index=True)
     content = Column(Text)
@@ -151,6 +161,7 @@ class DyCreator(Base):
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     desc = Column(Text)
     gender = Column(Text)
     follows = Column(Text)
@@ -166,6 +177,7 @@ class KuaishouVideo(Base):
     avatar = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     video_id = Column(String(255), index=True)
     video_type = Column(Text)
     title = Column(Text)
@@ -186,6 +198,7 @@ class KuaishouVideoComment(Base):
     avatar = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     comment_id = Column(BigInteger, index=True)
     video_id = Column(String(255), index=True)
     content = Column(Text)
@@ -203,6 +216,7 @@ class WeiboNote(Base):
     ip_location = Column(Text, default='')
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     note_id = Column(BigInteger, index=True)
     content = Column(Text)
     create_time = Column(BigInteger, index=True)
@@ -224,6 +238,7 @@ class WeiboNoteComment(Base):
     ip_location = Column(Text, default='')
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     comment_id = Column(BigInteger, index=True)
     note_id = Column(BigInteger, index=True)
     content = Column(Text)
@@ -242,6 +257,7 @@ class WeiboCreator(Base):
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     desc = Column(Text)
     gender = Column(Text)
     follows = Column(Text)
@@ -257,6 +273,7 @@ class XhsCreator(Base):
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     desc = Column(Text)
     gender = Column(Text)
     follows = Column(Text)
@@ -273,6 +290,7 @@ class XhsNote(Base):
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     note_id = Column(String(255), index=True)
     type = Column(Text)
     title = Column(Text)
@@ -299,6 +317,7 @@ class XhsNoteComment(Base):
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     comment_id = Column(String(255), index=True)
     create_time = Column(BigInteger, index=True)
     note_id = Column(String(255))
@@ -327,6 +346,7 @@ class TiebaNote(Base):
     ip_location = Column(Text, default='')
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     source_keyword = Column(Text, default='')
 
 class TiebaComment(Base):
@@ -348,6 +368,7 @@ class TiebaComment(Base):
     note_url = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
 
 class TiebaCreator(Base):
     __tablename__ = 'tieba_creator'
@@ -359,6 +380,7 @@ class TiebaCreator(Base):
     ip_location = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
     gender = Column(Text)
     follows = Column(Text)
     fans = Column(Text)
@@ -386,6 +408,7 @@ class ZhihuContent(Base):
     user_url_token = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
 
     # persist-1<persist1@126.com>
     # 原因：修复 ORM 模型定义错误，确保与数据库表结构一致。
@@ -411,6 +434,7 @@ class ZhihuComment(Base):
     user_avatar = Column(Text)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
 
 class ZhihuCreator(Base):
     __tablename__ = 'zhihu_creator'
@@ -432,3 +456,4 @@ class ZhihuCreator(Base):
     get_voteup_count = Column(Integer, default=0)
     add_ts = Column(BigInteger)
     last_modify_ts = Column(BigInteger)
+    crawled_at = Column(BigInteger, default=lambda: int(datetime.datetime.now().timestamp()))
