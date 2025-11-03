@@ -176,9 +176,11 @@ class BilibiliCrawler(AbstractCrawler):
         if config.CRAWLER_MAX_NOTES_COUNT < bili_limit_count:
             config.CRAWLER_MAX_NOTES_COUNT = bili_limit_count
         start_page = config.START_PAGE  # start page number
-        for keyword in config.KEYWORDS.split(","):
+        keyword_list = utils.generate_search_keywords(config.KEYWORDS)
+        utils.logger.info(f"[BilibiliCrawler.search_by_keywords] 需要爬取的所有检索词：{keyword_list}")
+        for keyword in keyword_list:
             source_keyword_var.set(keyword)
-            utils.logger.info(f"[BilibiliCrawler.search_by_keywords] Current search keyword: {keyword}")
+            utils.logger.info(f"[BilibiliCrawler.search_by_keywords] 当前检索词: {keyword}")
             page = 1
             while (page - start_page + 1) * bili_limit_count <= config.CRAWLER_MAX_NOTES_COUNT:
                 if page < start_page:

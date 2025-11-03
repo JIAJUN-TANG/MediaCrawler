@@ -190,3 +190,21 @@ def extract_url_params_to_dict(url: str) -> Dict:
     parsed_url = urllib.parse.urlparse(url)
     url_params_dict = dict(urllib.parse.parse_qsl(parsed_url.query))
     return url_params_dict
+
+def generate_search_keywords(keywords: str, separator: str = ",") -> List[str]:
+    """Generate search keywords list from a single string with separator"""
+    if not keywords:
+        return []
+    if ".txt" in keywords:
+        # load keywords from file
+        try:
+            with open(keywords, "r", encoding="utf-8") as f:
+                file_keywords = f.readlines()
+                keywords_list = [kw.strip() for kw in file_keywords if kw.strip()]
+                return keywords_list
+        except Exception as e:
+            utils.logger.error(f"[generate_search_keywords] load keywords from file failed: {e}")
+            return []
+    else:
+        keywords_list = [kw.strip() for kw in keywords.split(separator) if kw.strip()]
+        return keywords_list
