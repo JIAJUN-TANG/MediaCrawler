@@ -180,7 +180,7 @@ class BilibiliCrawler(AbstractCrawler):
         utils.logger.info(f"[BilibiliCrawler.search_by_keywords] 需要爬取的所有检索词：{keyword_list}")
         for keyword in keyword_list:
             source_keyword_var.set(keyword)
-            utils.logger.info(f"[BilibiliCrawler.search_by_keywords] 当前检索词: {keyword}")
+            utils.logger.info(f"[BilibiliCrawler.search_by_keywords] 当前检索词：{keyword}")
             page = 1
             while (page - start_page + 1) * bili_limit_count <= config.CRAWLER_MAX_NOTES_COUNT:
                 if page < start_page:

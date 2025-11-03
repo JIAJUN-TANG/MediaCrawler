@@ -120,9 +120,11 @@ class XiaoHongShuCrawler(AbstractCrawler):
         if config.CRAWLER_MAX_NOTES_COUNT < xhs_limit_count:
             config.CRAWLER_MAX_NOTES_COUNT = xhs_limit_count
         start_page = config.START_PAGE
-        for keyword in config.KEYWORDS.split(","):
+        keyword_list = utils.generate_search_keywords(config.KEYWORDS)
+        utils.logger.info(f"[XiaoHongShuCrawler.search] 需要爬取的所有检索词：{keyword_list}")
+        for keyword in keyword_list:
             source_keyword_var.set(keyword)
-            utils.logger.info(f"[XiaoHongShuCrawler.search] Current search keyword: {keyword}")
+            utils.logger.info(f"[XiaoHongShuCrawler.search] 当前检索词：{keyword}")
             page = 1
             search_id = get_search_id()
             while (page - start_page + 1) * xhs_limit_count <= config.CRAWLER_MAX_NOTES_COUNT:
