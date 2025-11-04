@@ -110,9 +110,11 @@ class DouYinCrawler(AbstractCrawler):
         if config.CRAWLER_MAX_NOTES_COUNT < dy_limit_count:
             config.CRAWLER_MAX_NOTES_COUNT = dy_limit_count
         start_page = config.START_PAGE  # start page number
-        for keyword in config.KEYWORDS.split(","):
+        keyword_list = utils.generate_search_keywords(config.KEYWORDS)
+        utils.logging.info(f"[DouYinCrawler.search] 须爬取的所有检索词：{keyword_list}")
+        for keyword in keyword_list:
             source_keyword_var.set(keyword)
-            utils.logger.info(f"[DouYinCrawler.search] Current keyword: {keyword}")
+            utils.logger.info(f"[DouYinCrawler.search] 当前检索词：{keyword}")
             aweme_list: List[str] = []
             page = 0
             dy_search_id = ""
