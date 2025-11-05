@@ -36,6 +36,7 @@ class DouYinClient(AbstractApiClient):
         headers: Dict,
         playwright_page: Optional[Page],
         cookie_dict: Dict,
+        browser_version: Optional[str] = None,
     ):
         self.proxy = proxy
         self.timeout = timeout
@@ -43,6 +44,8 @@ class DouYinClient(AbstractApiClient):
         self._host = "https://www.douyin.com"
         self.playwright_page = playwright_page
         self.cookie_dict = cookie_dict
+        # 使用实际浏览器版本或默认版本
+        self.browser_version = browser_version or "125.0.0.0"
 
     async def __process_req_params(
         self,
@@ -68,7 +71,7 @@ class DouYinClient(AbstractApiClient):
             "browser_language": "zh-CN",
             "browser_platform": "MacIntel",
             "browser_name": "Chrome",
-            "browser_version": "125.0.0.0",
+            "browser_version": self.browser_version,
             "browser_online": "true",
             "engine_name": "Blink",
             "os_name": "Mac OS",

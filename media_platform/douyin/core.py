@@ -284,7 +284,25 @@ class DouYinCrawler(AbstractCrawler):
                 await self.get_aweme_media(aweme_item=aweme_item)
 
     async def create_douyin_client(self, httpx_proxy: Optional[str]) -> DouYinClient:
-        """Create douyin client"""
+        """创建抖音客户端
+        
+        Args:
+            httpx_proxy: httpx代理
+            
+        Returns:
+            DouYinClient: 抖音客户端实例
+        """
+        # 从CDP管理器获取浏览器信息
+        browser_version = None
+        if self.cdp_manager:
+            browser_info = await self.cdp_manager.get_browser_info()
+            version = browser_info.get('version', '')
+            # 提取版本号的前几位（如142.0.3595.53 -> 142.0.0.0）
+            if version:
+                version_parts = version.split('.')
+                if len(version_parts) >= 1:
+                    browser_version = f"{version_parts[0]}.0.0.0"
+        
         cookie_str, cookie_dict = utils.convert_cookies(await self.browser_context.cookies())  # type: ignore
         douyin_client = DouYinClient(
             proxy=httpx_proxy,
@@ -298,6 +316,7 @@ class DouYinCrawler(AbstractCrawler):
             },
             playwright_page=self.context_page,
             cookie_dict=cookie_dict,
+            browser_version=browser_version
         )
         return douyin_client
 
@@ -335,8 +354,16 @@ class DouYinCrawler(AbstractCrawler):
         user_agent: Optional[str],
         headless: bool = True,
     ) -> BrowserContext:
-        """
-        使用CDP模式启动浏览器
+        """使用CDP模式启动浏览器
+        
+        Args:
+            playwright: Playwright实例
+            playwright_proxy: playwright代理配置
+            user_agent: 用户代理
+            headless: 是否无头模式
+            
+        Returns:
+            BrowserContext: 浏览器上下文
         """
         try:
             self.cdp_manager = CDPBrowserManager()
