@@ -70,6 +70,10 @@ if st:
         st.session_state.crawler_logs = []
     if "selected_platform" not in st.session_state:
         st.session_state.selected_platform = None
+    if "crawler_task" not in st.session_state:
+        st.session_state.crawler_task = None
+    if "event_loop" not in st.session_state:
+        st.session_state.event_loop = None
 
     st.title("数据采集")
 
@@ -557,8 +561,17 @@ async def run_crawler():
     finally:
         if st:
             st.session_state.crawler_running = False
-            # 刷新页面以更新状态
-            st.rerun()
+            st.session_state.crawler_task = None
+            
+            # 使用回调方式更新页面，避免直接调用st.rerun()
+            # 这可以减少事件循环冲突
+            async def update_ui():
+                # 短暂延迟确保状态更新
+                await asyncio.sleep(0.1)
+                
+            # 安排UI更新任务，但不等待完成
+            if asyncio.get_event_loop().is_running():
+                asyncio.create_task(update_ui())
 
 # 启动爬虫按钮
 if st and col1 is not None:
@@ -586,14 +599,48 @@ if st and col1 is not None:
                 if not valid_input:
                     st.error(error_msg)
                 else:
-                    # 创建并运行事件循环
-                    loop = asyncio.new_event_loop()
-                    asyncio.set_event_loop(loop)
-                    loop.create_task(run_crawler())
+                    # 安全地管理事件循环和任务
+                    if st.session_state.crawler_task and not st.session_state.crawler_task.done():
+                        try:
+                            st.session_state.crawler_task.cancel()
+                            # 移除await，因为这里不是async函数
+                            # 在非异步环境中，我们只取消任务而不等待它完成
+                            # await st.session_state.crawler_task  # 这行代码导致了错误
+                        except Exception:
+                            pass
+                    
+                    # 使用当前事件循环或创建新的
+                    try:
+                        loop = asyncio.get_event_loop()
+                        # 检查循环是否在运行
+                        if loop.is_running():
+                            # 在运行的事件循环中创建任务
+                            st.session_state.crawler_task = loop.create_task(run_crawler())
+                        else:
+                            # 如果循环未运行，启动一个新的
+                            st.session_state.event_loop = asyncio.new_event_loop()
+                            asyncio.set_event_loop(st.session_state.event_loop)
+                            st.session_state.crawler_task = st.session_state.event_loop.create_task(run_crawler())
+                            
+                            # 在单独的线程中运行事件循环
+                            import threading
+                            def run_loop():
+                                try:
+                                    st.session_state.event_loop.run_until_complete(st.session_state.crawler_task)
+                                except Exception as e:
+                                    print(f"事件循环错误: {e}")
+                                finally:
+                                    st.session_state.event_loop.close()
+                                    st.session_state.event_loop = None
+                                    
+                            thread = threading.Thread(target=run_loop, daemon=True)
+                            thread.start()
+                    except Exception as e:
+                        st.session_state.crawler_logs.append(f"启动爬虫时出错: {str(e)}")
+                    
                     # 短暂延迟让异步任务开始执行
                     import time
                     time.sleep(0.1)
-                    st.rerun()
         else:
             st.button("爬虫运行中...", disabled=True, use_container_width=True)
 
@@ -602,9 +649,28 @@ if st and col2 is not None:
     with col2:
         stop_button = st.button("停止爬虫", disabled=not st.session_state.crawler_running, use_container_width=True)
         if stop_button:
+            # 安全地取消任务
+            if st.session_state.crawler_task and not st.session_state.crawler_task.done():
+                try:
+                    st.session_state.crawler_task.cancel()
+                except Exception as e:
+                    st.session_state.crawler_logs.append(f"取消爬虫任务时出错: {str(e)}")
+            
+            # 清理事件循环
+            if st.session_state.event_loop:
+                try:
+                    st.session_state.event_loop.stop()
+                except Exception as e:
+                    pass
+                st.session_state.event_loop = None
+            
             st.session_state.crawler_running = False
+            st.session_state.crawler_task = None
             st.session_state.crawler_logs.append("爬虫已停止")
-            st.rerun()
+            
+            # 使用time.sleep替代st.rerun()，减少事件循环冲突
+            import time
+            time.sleep(0.1)
 
 # 显示日志
 if st and log_container is not None:
