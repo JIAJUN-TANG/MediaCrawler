@@ -24,3 +24,5 @@ cryptography>=45.0.7
 alembic>=1.16.5
 asyncmy>=0.2.10
 sqlalchemy>=2.0.43
+streamlit==1.36.0
+pymysql==1.1.0
