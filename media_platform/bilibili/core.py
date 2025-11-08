@@ -15,11 +15,58 @@
 
 import asyncio
 import os
+import time
 # import random  # Removed as we now use fixed config.CRAWLER_MAX_SLEEP_SEC intervals
 from asyncio import Task
 from typing import Dict, List, Optional, Tuple, Union
 from datetime import datetime, timedelta
 import pandas as pd
+
+# 进度条和状态显示工具类
+class ProgressTracker:
+    def __init__(self, total_steps: int, description: str):
+        self.total_steps = total_steps
+        self.current_step = 0
+        self.description = description
+        self.start_time = time.time()
+        
+    def update(self, step: int = 1):
+        self.current_step += step
+        elapsed_time = time.time() - self.start_time
+        progress_percent = (self.current_step / self.total_steps) * 100 if self.total_steps > 0 else 0
+        
+        # 简单的进度条显示
+        bar_length = 30
+        filled_length = int(bar_length * self.current_step / self.total_steps)
+        bar = '█' * filled_length + '-' * (bar_length - filled_length)
+        
+        # 计算预计剩余时间
+        if self.current_step > 0:
+            eta = (elapsed_time / self.current_step) * (self.total_steps - self.current_step)
+        else:
+            eta = 0
+        
+        # 格式化时间显示
+        elapsed_str = self._format_time(elapsed_time)
+        eta_str = self._format_time(eta)
+        
+        # 使用print而不是logger，避免日志文件过大
+        print(f'\r{self.description} [{bar}] {self.current_step}/{self.total_steps} ({progress_percent:.1f}%) | 已用时: {elapsed_str} | 预计剩余: {eta_str}', end='', flush=True)
+    
+    def finish(self):
+        elapsed_time = time.time() - self.start_time
+        elapsed_str = self._format_time(elapsed_time)
+        print(f'\n{self.description} 完成! 总用时: {elapsed_str}')
+    
+    def _format_time(self, seconds):
+        minutes, seconds = divmod(int(seconds), 60)
+        hours, minutes = divmod(minutes, 60)
+        if hours > 0:
+            return f'{hours}h {minutes}m {seconds}s'
+        elif minutes > 0:
+            return f'{minutes}m {seconds}s'
+        else:
+            return f'{seconds}s'
 
 from playwright.async_api import (
     BrowserContext,
@@ -171,57 +218,96 @@ class BilibiliCrawler(AbstractCrawler):
         search bilibili video with keywords in normal mode
         :return:
         """
+        # 只在开始时记录一次日志
         utils.logger.info("[BilibiliCrawler.search_by_keywords] Begin search bilibli keywords")
+        
         bili_limit_count = 20  # bilibili limit page fixed value
         if config.CRAWLER_MAX_NOTES_COUNT < bili_limit_count:
             config.CRAWLER_MAX_NOTES_COUNT = bili_limit_count
         start_page = config.START_PAGE  # start page number
         keyword_list = utils.generate_search_keywords(config.KEYWORDS)
-        utils.logger.info(f"[BilibiliCrawler.search_by_keywords] 需要爬取的所有检索词：{keyword_list}")
-        for keyword in keyword_list:
+        
+        # 为整个搜索过程创建进度跟踪器
+        total_keywords = len(keyword_list)
+        main_progress = ProgressTracker(total_keywords, f"B站关键词搜索总进度")
+        
+        for idx, keyword in enumerate(keyword_list):
             source_keyword_var.set(keyword)
-            utils.logger.info(f"[BilibiliCrawler.search_by_keywords] 当前检索词：{keyword}")
+            
+            # 计算每个关键词需要爬取的总页数
+            total_pages = (config.CRAWLER_MAX_NOTES_COUNT + bili_limit_count - 1) // bili_limit_count
+            if total_pages < 1:
+                total_pages = 1
+            
+            # 为当前关键词创建进度跟踪器
+            keyword_progress = ProgressTracker(total_pages - start_page + 1, f"正在处理关键词: {keyword}")
+            
             page = 1
             while (page - start_page + 1) * bili_limit_count <= config.CRAWLER_MAX_NOTES_COUNT:
                 if page < start_page:
-                    utils.logger.info(f"[BilibiliCrawler.search_by_keywords] Skip page: {page}")
                     page += 1
                     continue
 
-                utils.logger.info(f"[BilibiliCrawler.search_by_keywords] search bilibili keyword: {keyword}, page: {page}")
-                video_id_list: List[str] = []
-                videos_res = await self.bili_client.search_video_by_keyword(
-                    keyword=keyword,
-                    page=page,
-                    page_size=bili_limit_count,
-                    order=SearchOrderType.DEFAULT,
-                    pubtime_begin_s=0,  # 作品发布日期起始时间戳
-                    pubtime_end_s=0,  # 作品发布日期结束日期时间戳
-                )
-                video_list: List[Dict] = videos_res.get("result")
-
-                if not video_list:
-                    utils.logger.info(f"[BilibiliCrawler.search_by_keywords] No more videos for '{keyword}', moving to next keyword.")
-                    break
-
-                semaphore = asyncio.Semaphore(config.MAX_CONCURRENCY_NUM)
-                task_list = []
+                # 不显示具体的爬取数据，只显示状态
+                current_status = f"[关键词: {keyword}] 正在爬取第 {page} 页..."
+                print(f"\r{current_status}", end="", flush=True)
+                
                 try:
-                    task_list = [self.get_video_info_task(aid=video_item.get("aid"), bvid="", semaphore=semaphore) for video_item in video_list]
+                    video_id_list: List[str] = []
+                    videos_res = await self.bili_client.search_video_by_keyword(
+                        keyword=keyword,
+                        page=page,
+                        page_size=bili_limit_count,
+                        order=SearchOrderType.DEFAULT,
+                        pubtime_begin_s=0,  # 作品发布日期起始时间戳
+                        pubtime_end_s=0,  # 作品发布日期结束日期时间戳
+                    )
+                    video_list: List[Dict] = videos_res.get("result")
+
+                    if not video_list:
+                        print(f"\n[关键词: {keyword}] 没有更多视频，切换到下一个关键词。")
+                        break
+
+                    semaphore = asyncio.Semaphore(config.MAX_CONCURRENCY_NUM)
+                    task_list = []
+                    try:
+                        task_list = [self.get_video_info_task(aid=video_item.get("aid"), bvid="", semaphore=semaphore) for video_item in video_list]
+                    except Exception as e:
+                        utils.logger.warning(f"[BilibiliCrawler.search_by_keywords] 任务列表创建错误，该页视频将被跳过: {e}")
+                    
+                    video_items = await asyncio.gather(*task_list)
+                    processed_count = 0
+                    for video_item in video_items:
+                        if video_item:
+                            video_id_list.append(video_item.get("View").get("aid"))
+                            await bilibili_store.update_bilibili_video(video_item)
+                            await bilibili_store.update_up_info(video_item)
+                            await self.get_bilibili_video(video_item, semaphore)
+                            processed_count += 1
+                    
+                    # 更新进度条
+                    keyword_progress.update()
+                    print(f"\r[关键词: {keyword}] 第 {page} 页处理完成，成功处理 {processed_count} 个视频")
+                    
                 except Exception as e:
-                    utils.logger.warning(f"[BilibiliCrawler.search_by_keywords] error in the task list. The video for this page will not be included. {e}")
-                video_items = await asyncio.gather(*task_list)
-                for video_item in video_items:
-                    if video_item:
-                        video_id_list.append(video_item.get("View").get("aid"))
-                        await bilibili_store.update_bilibili_video(video_item)
-                        await bilibili_store.update_up_info(video_item)
-                        await self.get_bilibili_video(video_item, semaphore)
+                    utils.logger.error(f"[BilibiliCrawler.search_by_keywords] 处理关键词 {keyword} 第 {page} 页时出错: {e}")
+                
                 page += 1
                 
                 # Sleep after page navigation
                 await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-                await self.batch_get_video_comments(video_id_list)
+                
+                # 处理评论，不显示详细信息
+                if video_id_list:
+                    print(f"[关键词: {keyword}] 正在获取 {len(video_id_list)} 个视频的评论...")
+                    await self.batch_get_video_comments(video_id_list)
+            
+            # 完成当前关键词的处理
+            keyword_progress.finish()
+            main_progress.update()
+        
+        # 完成所有关键词的处理
+        main_progress.finish()
 
     async def search_by_keywords_in_time_range(self, daily_limit: bool):
         """
@@ -300,12 +386,10 @@ class BilibiliCrawler(AbstractCrawler):
                         
                         # Sleep after page navigation
                         await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
-                        utils.logger.info(f"[BilibiliCrawler.search_by_keywords_in_time_range] Sleeping for {config.CRAWLER_MAX_SLEEP_SEC} seconds after page {page-1}")
                         
                         await self.batch_get_video_comments(video_id_list)
 
                     except Exception as e:
-                        utils.logger.error(f"[BilibiliCrawler.search] Error searching on {day.ctime()}: {e}")
                         break
 
     async def batch_get_video_comments(self, video_id_list: List[str]):
