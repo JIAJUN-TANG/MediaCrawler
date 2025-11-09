@@ -225,7 +225,7 @@ class BilibiliCrawler(AbstractCrawler):
         if config.CRAWLER_MAX_NOTES_COUNT < bili_limit_count:
             config.CRAWLER_MAX_NOTES_COUNT = bili_limit_count
         start_page = config.START_PAGE  # start page number
-        keyword_list = utils.generate_search_keywords(config.KEYWORDS)
+        keyword_list = utils.generate_search_keywords(config.KEYWORDS).sort()
         
         # 为整个搜索过程创建进度跟踪器
         total_keywords = len(keyword_list)
@@ -418,7 +418,6 @@ class BilibiliCrawler(AbstractCrawler):
         """
         async with semaphore:
             try:
-                utils.logger.info(f"[BilibiliCrawler.get_comments] begin get video_id: {video_id} comments ...")
                 await asyncio.sleep(config.CRAWLER_MAX_SLEEP_SEC)
                 await self.bili_client.get_video_all_comments(
                     video_id=video_id,

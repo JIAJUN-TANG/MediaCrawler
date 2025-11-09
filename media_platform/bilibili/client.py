@@ -270,15 +270,22 @@ class BilibiliClient(AbstractApiClient):
                         utils.logger.error(f"[BilibiliClient.get_video_all_comments] Max retries reached for video_id: {video_id}. Skipping comments. Error: {e}")
                         is_end = True
                         break
-            if not comments_res:
+            # 确保comments_res不为None
+            if not comments_res or not isinstance(comments_res, dict):
+                utils.logger.warning(f"[BilibiliClient.get_video_all_comments] Invalid response for video_id: {video_id}. Skipping.")
                 break
 
-            cursor_info: Dict = comments_res.get("cursor")
-            if not cursor_info:
-                utils.logger.warning(f"[BilibiliClient.get_video_all_comments] Could not find 'cursor' in response for video_id: {video_id}. Skipping.")
+            # 安全获取cursor信息
+            cursor_info = comments_res.get("cursor")
+            if not cursor_info or not isinstance(cursor_info, dict):
+                utils.logger.warning(f"[BilibiliClient.get_video_all_comments] Could not find valid 'cursor' in response for video_id: {video_id}. Skipping.")
                 break
 
-            comment_list: List[Dict] = comments_res.get("replies", [])
+            # 安全获取评论列表，确保不为None
+            comment_list = comments_res.get("replies", [])
+            if comment_list is None:
+                comment_list = []
+                utils.logger.warning(f"[BilibiliClient.get_video_all_comments] Comments list is None for video_id: {video_id}.")
 
             # 检查 is_end 和 next 是否存在
             if "is_end" not in cursor_info or "next" not in cursor_info:
@@ -291,19 +298,27 @@ class BilibiliClient(AbstractApiClient):
             if not isinstance(is_end, bool):
                 utils.logger.warning(f"[BilibiliClient.get_video_all_comments] 'is_end' is not a boolean for video_id: {video_id}. Assuming end of comments.")
                 is_end = True
-            if is_fetch_sub_comments:
-                for comment in comment_list:
-                    comment_id = comment['rpid']
-                    if (comment.get("rcount", 0) > 0):
-                        {await self.get_video_all_level_two_comments(video_id, comment_id, CommentOrderType.DEFAULT, 10, crawl_interval, callback)}
-            if len(result) + len(comment_list) > max_count:
-                comment_list = comment_list[:max_count - len(result)]
-            if callback:  # 如果有回调函数，就执行回调函数
-                await callback(video_id, comment_list)
+            
+            # 只有在评论列表非空时才处理
+            if comment_list:
+                if is_fetch_sub_comments:
+                    # 修复异步调用语法错误，正确获取二级评论
+                    for comment in comment_list:
+                        comment_id = comment['rpid']
+                        if (comment.get("rcount", 0) > 0):
+                            await self.get_video_all_level_two_comments(video_id, comment_id, CommentOrderType.DEFAULT, 10, crawl_interval, callback)
+                
+                if len(result) + len(comment_list) > max_count:
+                    comment_list = comment_list[:max_count - len(result)]
+                
+                if callback:  # 如果有回调函数，就执行回调函数
+                    await callback(video_id, comment_list)
+                
+                if not is_fetch_sub_comments:
+                    result.extend(comment_list)
+            
             await asyncio.sleep(crawl_interval)
-            if not is_fetch_sub_comments:
-                result.extend(comment_list)
-                continue
+            continue
         return result
 
     async def get_video_all_level_two_comments(
