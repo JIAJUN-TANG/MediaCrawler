@@ -14,14 +14,14 @@
 # @Desc    :
 
 from typing import List
+import datetime
 
 import config
+from tools import utils
 from var import source_keyword_var
 
 from ._store_impl import *
 from .bilibilli_store_media import *
-
-import datetime
 
 
 class BiliStoreFactory:
@@ -94,9 +94,17 @@ async def update_up_info(video_item: Dict):
 
 async def batch_update_bilibili_video_comments(video_id: str, comments: List[Dict]):
     if not comments:
+        print(f"[B站评论处理] 视频ID: {video_id}, 无评论需要处理")
         return
-    for comment_item in comments:
+    
+    total_comments = len(comments)
+    print(f"[B站评论处理] 开始处理视频ID: {video_id}，共{total_comments}条评论")
+    
+    for i, comment_item in enumerate(comments, 1):
         await update_bilibili_video_comment(video_id, comment_item)
+        
+    # 处理完成后换行，避免覆盖最后一条状态信息
+    print(f"[B站评论处理] 视频ID: {video_id}，评论处理完成，共处理{total_comments}条评论")
 
 
 async def update_bilibili_video_comment(video_id: str, comment_item: Dict):
@@ -121,7 +129,8 @@ async def update_bilibili_video_comment(video_id: str, comment_item: Dict):
         "last_modify_ts": utils.get_current_timestamp(),
         "crawled_at": int(datetime.datetime.now().timestamp()),
     }
-    utils.logger.info(f"[store.bilibili.update_bilibili_video_comment] Bilibili video comment: {comment_id}, content: {save_comment_item.get('content')}")
+    # 只显示状态信息，不打印具体评论内容
+    print(f"[B站评论处理] 视频ID: {video_id}, 评论ID: {comment_id}, 处理中...", end='\r', flush=True)
     await BiliStoreFactory.create_store().store_comment(comment_item=save_comment_item)
 
 
