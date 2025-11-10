@@ -225,7 +225,7 @@ class BilibiliCrawler(AbstractCrawler):
         if config.CRAWLER_MAX_NOTES_COUNT < bili_limit_count:
             config.CRAWLER_MAX_NOTES_COUNT = bili_limit_count
         start_page = config.START_PAGE  # start page number
-        keyword_list = utils.generate_search_keywords(config.KEYWORDS).sort()
+        keyword_list = sorted(utils.generate_search_keywords(config.KEYWORDS), reverse=True)
         
         # 为整个搜索过程创建进度跟踪器
         total_keywords = len(keyword_list)
