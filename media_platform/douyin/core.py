@@ -12,7 +12,8 @@ import asyncio
 import os
 import random
 from asyncio import Task
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional
+import random
 
 from playwright.async_api import (
     BrowserContext,
@@ -111,7 +112,8 @@ class DouYinCrawler(AbstractCrawler):
             config.CRAWLER_MAX_NOTES_COUNT = dy_limit_count
         start_page = config.START_PAGE  # start page number
         keyword_list = utils.generate_search_keywords(config.KEYWORDS)
-        utils.logging.info(f"[DouYinCrawler.search] 须爬取的所有检索词：{keyword_list}")
+        random.shuffle(keyword_list)
+        utils.logger.info(f"[DouYinCrawler.search] 须爬取的所有检索词：{keyword_list}")
         for keyword in keyword_list:
             source_keyword_var.set(keyword)
             utils.logger.info(f"[DouYinCrawler.search] 当前检索词：{keyword}")
