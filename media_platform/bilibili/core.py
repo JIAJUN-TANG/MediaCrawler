@@ -21,6 +21,7 @@ from asyncio import Task
 from typing import Dict, List, Optional, Tuple, Union
 from datetime import datetime, timedelta
 import pandas as pd
+import random
 
 # 进度条和状态显示工具类
 class ProgressTracker:
@@ -226,6 +227,8 @@ class BilibiliCrawler(AbstractCrawler):
             config.CRAWLER_MAX_NOTES_COUNT = bili_limit_count
         start_page = config.START_PAGE  # start page number
         keyword_list = sorted(utils.generate_search_keywords(config.KEYWORDS), reverse=True)
+        random.shuffle(keyword_list)
+
         
         # 为整个搜索过程创建进度跟踪器
         total_keywords = len(keyword_list)
